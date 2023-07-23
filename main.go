@@ -51,7 +51,8 @@ func findCoverFile(inputFile string) (*zip.File, error) {
 	}
 
 	for _, file := range inputFileReader.File {
-		match, _ := regexp.MatchString(`.+(Cover|cover).+\.(jpeg|jpg|png)$`, file.Name)
+		log.Print(file.Name)
+		match, _ := regexp.MatchString(`.+(Cover|cover)(.+)?\.(jpeg|jpg|png)$`, file.Name)
 		if match {
 			return file, nil
 		}
@@ -72,22 +73,22 @@ func extractCover(ctx *cli.Context) (bool, error) {
 		return true, cli.Exit("No output file given", 86)
 	}
 
-  coverFile, err := findCoverFile(inputFile)
+	coverFile, err := findCoverFile(inputFile)
 	if err != nil {
-    log.Fatal(err, inputFile)
+		log.Fatal(err, inputFile)
 		cli.Exit(err, 1)
 	}
 
 	srcFile, err := coverFile.Open()
 	if err != nil {
-    log.Fatal(err, inputFile)
+		log.Fatal(err, inputFile)
 		cli.Exit(err, 1)
 	}
 	defer srcFile.Close()
 
 	dstFile, err := os.Create(outputFile)
 	if err != nil {
-    log.Fatal(err, inputFile)
+		log.Fatal(err, inputFile)
 		cli.Exit(err, 1)
 	}
 	defer dstFile.Close()
