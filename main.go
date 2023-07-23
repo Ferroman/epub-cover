@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
+	"regexp"
 	"time"
 
 	"github.com/urfave/cli/v2"
@@ -36,7 +36,7 @@ func isZipFile(inputFile string) (bool, error) {
 }
 
 func findCoverFile(inputFile string) (*zip.File, error) {
-	isZip, err := isZipFile("test.zip")
+	isZip, err := isZipFile(inputFile)
 	if err != nil {
 		return nil, err
 	}
@@ -47,16 +47,17 @@ func findCoverFile(inputFile string) (*zip.File, error) {
 
 	inputFileReader, err := zip.OpenReader(inputFile)
 	if err != nil {
-		msg := "Failed to open: %s"
-		return nil, errors.New(msg)
+		return nil, errors.New(err.Error())
 	}
 
 	for _, file := range inputFileReader.File {
-		if strings.Contains(file.Name, "Cover") || strings.Contains(file.Name, "cover") {
+		match, _ := regexp.MatchString(`.+(Cover|cover).+\.(jpeg|jpg|png)$`, file.Name)
+		if match {
 			return file, nil
 		}
 	}
-	return nil, errors.New("File has no cover")
+
+	return nil, errors.New("Epub has no cover")
 }
 
 func extractCover(ctx *cli.Context) (bool, error) {
@@ -71,23 +72,25 @@ func extractCover(ctx *cli.Context) (bool, error) {
 		return true, cli.Exit("No output file given", 86)
 	}
 
-	coverFile, err := findCoverFile(inputFile)
+  coverFile, err := findCoverFile(inputFile)
 	if err != nil {
-		msg := "Failed to open: %s"
-		cli.Exit(msg, 1)
-	}
-
-	dstFile, err := os.Create(outputFile)
-	if err != nil {
+    log.Fatal(err, inputFile)
 		cli.Exit(err, 1)
 	}
-	defer dstFile.Close()
 
 	srcFile, err := coverFile.Open()
 	if err != nil {
+    log.Fatal(err, inputFile)
 		cli.Exit(err, 1)
 	}
 	defer srcFile.Close()
+
+	dstFile, err := os.Create(outputFile)
+	if err != nil {
+    log.Fatal(err, inputFile)
+		cli.Exit(err, 1)
+	}
+	defer dstFile.Close()
 
 	if _, err := io.Copy(dstFile, srcFile); err != nil {
 		cli.Exit(err, 1)
